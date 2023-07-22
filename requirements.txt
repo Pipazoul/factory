@@ -1,0 +1,7 @@
+streamlink
+fastapi
+opencv-python
+uvicorn[standard]
+ffmpeg-python
+ultralytics
+salesforce-lavis
