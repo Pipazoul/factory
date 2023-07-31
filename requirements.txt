@@ -5,4 +5,5 @@ uvicorn[standard]
 ffmpeg-python
 ultralytics
 salesforce-lavis
-#git+https://github.com/openai/whisper.git
+openai-whisper
+pydub

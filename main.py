@@ -7,9 +7,12 @@ import subprocess
 from ultralytics import YOLO
 import cv2
 import os
-
+import whisper
 # load pretrained model
 model = YOLO('yolov8x.pt')
+
+whisperModel = whisper.load_model("base")
+
 
 # cors
 origins = ["*"]
@@ -18,6 +21,37 @@ app = FastAPI()
 
 import time
 import asyncio
+
+
+def getStreamUrl(user):
+    streams = streamlink.streams("https://www.twitch.tv/" + user)
+    # check if 720 stream is online if not use 480
+    if "720p" in streams:
+        url = streams["720p"].url
+    elif "480p" in streams:
+        url = streams["480p"].url
+    else:
+        url = streams["best"].url
+    return url
+
+async def transcribeAudio(url):
+    print("transcribeAudio")
+
+    while True:
+        try:
+            print("while")
+            # Open stream for 10 seconds
+            command = ['ffmpeg', '-i', url, '-t', '5', '-y', 'audio.wav']
+            # Run the command wihout verbosity
+            subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # wait for 10 seconds
+            #await asyncio.sleep(5)
+            result = whisperModel.transcribe("audio.wav")
+            print(result["text"])
+            yield result["text"]
+        except KeyboardInterrupt:
+            break
+
 
 
 async def streamVideo(url, fps=24):
@@ -70,6 +104,16 @@ async def streamVideo(url, fps=24):
 
         except KeyboardInterrupt:
             break
+
+# audio
+@app.get("/audio/{user}")
+async def audio(user: str):
+    # Open the stream and save as audio.wav
+    streams = streamlink.streams("https://www.twitch.tv/" + user)
+    url = streams["audio_only"].url
+    #transcribeAudio(url)
+    # Return text into a websocket
+    return StreamingResponse(transcribeAudio(url), media_type="text/plain")
 # realtime
 @app.get("/realtime/{user}")
 async def realtime(user: str):
